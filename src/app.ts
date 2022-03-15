@@ -1,127 +1,132 @@
-const a: string = 'ssssasdasdasdaasdss'
+type response = {
+  status: number
+}
 
-console.log(a)
+type handlers = {
+  next: Function
+  error: Function
+  complete: Function
+}
 
-// class Observer {
-//   constructor(handlers) {
-//     this.handlers = handlers
-//     this.isUnsubscribed = false
-//   }
+class Observer {
+  private isUnsubscribed: boolean
+  private handlers: handlers
+  _unsubscribe: any
+  constructor(handlers: handlers) {
+    this.handlers = handlers
+    this.isUnsubscribed = false
+  }
 
-//   next(value) {
-//     if (this.handlers.next && !this.isUnsubscribed) {
-//       this.handlers.next(value)
-//     }
-//   }
+  next(value: any) {
+    if (this.handlers.next && !this.isUnsubscribed) {
+      this.handlers.next(value)
+    }
+  }
 
-//   error(error) {
-//     if (!this.isUnsubscribed) {
-//       if (this.handlers.error) {
-//         this.handlers.error(error)
-//       }
+  error(error: any) {
+    if (!this.isUnsubscribed) {
+      if (this.handlers.error) {
+        this.handlers.error(error)
+      }
 
-//       this.unsubscribe()
-//     }
-//   }
+      this.unsubscribe()
+    }
+  }
 
-//   complete() {
-//     if (!this.isUnsubscribed) {
-//       if (this.handlers.complete) {
-//         this.handlers.complete()
-//       }
+  complete() {
+    if (!this.isUnsubscribed) {
+      if (this.handlers.complete) {
+        this.handlers.complete()
+      }
 
-//       this.unsubscribe()
-//     }
-//   }
+      this.unsubscribe()
+    }
+  }
 
-//   unsubscribe() {
-//     this.isUnsubscribed = true
+  unsubscribe() {
+    this.isUnsubscribed = true
 
-//     if (this._unsubscribe) {
-//       this._unsubscribe()
-//     }
-//   }
-// }
+    if (this._unsubscribe) {
+      this._unsubscribe()
+    }
+  }
+}
 
-// class Observable {
-//   constructor(subscribe) {
-//     this._subscribe = subscribe
-//   }
+class Observable {
+  private _subscribe: Function
 
-//   static from(values) {
-//     return new Observable((observer) => {
-//       values.forEach((value) => observer.next(value))
+  constructor(subscribe) {
+    this._subscribe = subscribe
+  }
+  static from(values) {
+    return new Observable((observer) => {
+      values.forEach((value) => observer.next(value))
+      observer.complete()
+      return () => {
+        console.log('unsubscribed')
+      }
+    })
+  }
+  subscribe(obs) {
+    const observer = new Observer(obs)
+    observer._unsubscribe = this._subscribe(observer)
+    return {
+      unsubscribe() {
+        observer.unsubscribe()
+      },
+    }
+  }
+}
 
-//       observer.complete()
+const HTTP_POST_METHOD: string = 'POST'
+const HTTP_GET_METHOD: string = 'GET'
 
-//       return () => {
-//         console.log('unsubscribed')
-//       }
-//     })
-//   }
+const HTTP_STATUS_OK: number = 200
+const HTTP_STATUS_INTERNAL_SERVER_ERROR: number = 500
 
-//   subscribe(obs) {
-//     const observer = new Observer(obs)
+const userMock = {
+  name: 'User Name',
+  age: 26,
+  roles: ['user', 'admin'],
+  createdAt: new Date(),
+  isDeleated: false,
+}
 
-//     observer._unsubscribe = this._subscribe(observer)
+const requestsMock = [
+  {
+    method: HTTP_POST_METHOD,
+    host: 'service.example',
+    path: 'user',
+    body: userMock,
+    params: {},
+  },
+  {
+    method: HTTP_GET_METHOD,
+    host: 'service.example',
+    path: 'user',
+    params: {
+      id: '3f5h67s4s',
+    },
+  },
+]
 
-//     return {
-//       unsubscribe() {
-//         observer.unsubscribe()
-//       },
-//     }
-//   }
-// }
+const handleRequest = (request: any) => {
+  // handling of request
+  return { status: HTTP_STATUS_OK }
+}
+const handleError = (error: any) => {
+  // handling of error
+  return { status: HTTP_STATUS_INTERNAL_SERVER_ERROR }
+}
 
-// const HTTP_POST_METHOD: string = 'POST'
-// const HTTP_GET_METHOD: string = 'GET'
+const handleComplete = () => console.log('complete')
 
-// const HTTP_STATUS_OK: number = 200
-// const HTTP_STATUS_INTERNAL_SERVER_ERROR: number = 500
+const requests$ = Observable.from(requestsMock)
 
-// const userMock = {
-//   name: 'User Name',
-//   age: 26,
-//   roles: ['user', 'admin'],
-//   createdAt: new Date(),
-//   isDeleated: false,
-// }
+const subscription = requests$.subscribe({
+  next: handleRequest,
+  error: handleError,
+  complete: handleComplete,
+})
 
-// const requestsMock = [
-//   {
-//     method: HTTP_POST_METHOD,
-//     host: 'service.example',
-//     path: 'user',
-//     body: userMock,
-//     params: {},
-//   },
-//   {
-//     method: HTTP_GET_METHOD,
-//     host: 'service.example',
-//     path: 'user',
-//     params: {
-//       id: '3f5h67s4s',
-//     },
-//   },
-// ]
-
-// const handleRequest = (request) => {
-//   // handling of request
-//   return { status: HTTP_STATUS_OK }
-// }
-// const handleError = (error) => {
-//   // handling of error
-//   return { status: HTTP_STATUS_INTERNAL_SERVER_ERROR }
-// }
-
-// const handleComplete = () => console.log('complete')
-
-// const requests$ = Observable.from(requestsMock)
-
-// const subscription = requests$.subscribe({
-//   next: handleRequest,
-//   error: handleError,
-//   complete: handleComplete,
-// })
-
-// subscription.unsubscribe()
+subscription.unsubscribe()

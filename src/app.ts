@@ -3,27 +3,30 @@ type response = {
 }
 
 type handlers = {
-  next: Function
-  error: Function
-  complete: Function
+  next(value: request): void
+  error(error: response): void
+  complete(): void
 }
 
 class Observer {
   private isUnsubscribed: boolean
   private handlers: handlers
   _unsubscribe: any
+
   constructor(handlers: handlers) {
     this.handlers = handlers
     this.isUnsubscribed = false
   }
 
-  next(value: any) {
+  next(value: request) {
+    console.log(value)
     if (this.handlers.next && !this.isUnsubscribed) {
       this.handlers.next(value)
     }
   }
 
   error(error: any) {
+    console.log(error)
     if (!this.isUnsubscribed) {
       if (this.handlers.error) {
         this.handlers.error(error)
@@ -52,14 +55,17 @@ class Observer {
   }
 }
 
-class Observable {
-  private _subscribe: Function
+type subscribeType = (observer: Observer) => () => void
 
-  constructor(subscribe) {
+class Observable {
+  private _subscribe: subscribeType
+
+  constructor(subscribe: subscribeType) {
     this._subscribe = subscribe
   }
-  static from(values) {
-    return new Observable((observer) => {
+
+  static from(values: typeof requestsMock) {
+    return new Observable((observer: Observer) => {
       values.forEach((value) => observer.next(value))
       observer.complete()
       return () => {
@@ -67,7 +73,8 @@ class Observable {
       }
     })
   }
-  subscribe(obs) {
+
+  subscribe(obs: any) {
     const observer = new Observer(obs)
     observer._unsubscribe = this._subscribe(observer)
     return {
@@ -92,7 +99,17 @@ const userMock = {
   isDeleated: false,
 }
 
-const requestsMock = [
+type request = {
+  method: string
+  host: string
+  path: string
+  body?: typeof userMock
+  params: {
+    id?: string
+  }
+}
+
+const requestsMock: request[] = [
   {
     method: HTTP_POST_METHOD,
     host: 'service.example',
@@ -110,11 +127,11 @@ const requestsMock = [
   },
 ]
 
-const handleRequest = (request: any) => {
+const handleRequest = (request: request): response => {
   // handling of request
   return { status: HTTP_STATUS_OK }
 }
-const handleError = (error: any) => {
+const handleError = (error: any): response => {
   // handling of error
   return { status: HTTP_STATUS_INTERNAL_SERVER_ERROR }
 }

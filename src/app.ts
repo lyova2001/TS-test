@@ -1,10 +1,6 @@
-type response = {
-  status: number
-}
-
 type handlers = {
   next(value: request): void
-  error(error: any): void
+  error<T>(error: T): void
   complete(): void
 }
 
@@ -22,7 +18,7 @@ class Observer {
     }
   }
 
-  error(error: response) {
+  error<T>(error: T) {
     if (!this.isUnsubscribed) {
       if (this.handlers.error) {
         this.handlers.error(error)
@@ -114,12 +110,16 @@ const requestsMock: request[] = [
   },
 ]
 
+type response = {
+  status: number
+}
+
 const handleRequest = (request: request): response => {
   // handling of request
   return { status: HTTP_STATUS_OK }
 }
 
-const handleError = (error: any): response => {
+const handleError = <T>(error: T): response => {
   // handling of error
   return { status: HTTP_STATUS_INTERNAL_SERVER_ERROR }
 }

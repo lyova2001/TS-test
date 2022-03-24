@@ -4,34 +4,29 @@ type response = {
 
 type handlers = {
   next(value: request): void
-  error(error: response): void
+  error(error: any): void
   complete(): void
 }
 
 class Observer {
   private isUnsubscribed: boolean
-  private handlers: handlers
-  _unsubscribe: any
+  _unsubscribe!: () => void
 
-  constructor(handlers: handlers) {
-    this.handlers = handlers
+  constructor(private handlers: handlers) {
     this.isUnsubscribed = false
   }
 
   next(value: request) {
-    console.log(value)
     if (this.handlers.next && !this.isUnsubscribed) {
       this.handlers.next(value)
     }
   }
 
-  error(error: any) {
-    console.log(error)
+  error(error: response) {
     if (!this.isUnsubscribed) {
       if (this.handlers.error) {
         this.handlers.error(error)
       }
-
       this.unsubscribe()
     }
   }
@@ -41,30 +36,22 @@ class Observer {
       if (this.handlers.complete) {
         this.handlers.complete()
       }
-
       this.unsubscribe()
     }
   }
 
   unsubscribe() {
     this.isUnsubscribed = true
-
     if (this._unsubscribe) {
       this._unsubscribe()
     }
   }
 }
 
-type subscribeType = (observer: Observer) => () => void
-
 class Observable {
-  private _subscribe: subscribeType
+  constructor(private _subscribe: (observer: Observer) => () => void) {}
 
-  constructor(subscribe: subscribeType) {
-    this._subscribe = subscribe
-  }
-
-  static from(values: typeof requestsMock) {
+  static from(values: request[]) {
     return new Observable((observer: Observer) => {
       values.forEach((value) => observer.next(value))
       observer.complete()
@@ -74,7 +61,7 @@ class Observable {
     })
   }
 
-  subscribe(obs: any) {
+  subscribe(obs: handlers) {
     const observer = new Observer(obs)
     observer._unsubscribe = this._subscribe(observer)
     return {
@@ -131,6 +118,7 @@ const handleRequest = (request: request): response => {
   // handling of request
   return { status: HTTP_STATUS_OK }
 }
+
 const handleError = (error: any): response => {
   // handling of error
   return { status: HTTP_STATUS_INTERNAL_SERVER_ERROR }
